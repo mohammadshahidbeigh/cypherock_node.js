@@ -41,6 +41,22 @@ graph TD;
 
 ---
 
+## Key Challenges & Architectural Choices
+
+### Provable Identity
+Each device receives a unique, cryptographically signed certificate from the HSM (or MockHSM), allowing it to prove its legitimacy in the field.
+
+### Concurrency vs. Sequential HSM
+The backend uses a job queue (BullMQ + Redis) to serialize access to the HSM, ensuring only one cryptographic operation occurs at a time, while still accepting concurrent requests.
+
+### Network Architecture
+To bridge the untrusted factory network and the secure on-premise backend (which cannot accept direct incoming connections), the system uses Firestore relay. Both client and server communicate via Firestore collections, eliminating the need for static IPs or open inbound ports.
+
+### Hardware Abstraction
+The cryptographic signing logic is abstracted behind an IHSM interface, allowing seamless swapping between a MockHSM (for development) and a real HSM (for production) without changing core logic.
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -134,3 +150,39 @@ The server will start on `http://localhost:3000` (or your configured port).
 
 ## License
 MIT 
+
+---
+
+## Running the System Locally
+
+1. Clone the repository:
+   ```bash
+   git clone <repo-url>
+   cd cypherock_node.js/server
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables:
+   - Copy `.env.example` to `.env` and fill in the required values (see Configuration section above).
+
+4. Start Redis (required for the job queue):
+   - If you have Docker: `docker run -p 6379:6379 redis`
+   - Or install Redis locally.
+
+5. Start the server:
+   ```bash
+   npm run dev
+   ```
+
+6. (Optional) Start the frontend (if available):
+   ```bash
+   cd ../client
+   npm install
+   npm start
+   ```
+
+7. Use the Firestore relay collections to interact with the backend as described above. 

@@ -1,3 +1,22 @@
+# API Overview
+
+This backend exposes the following integration points:
+
+## Firestore Relay Collections (Recommended)
+- `provision_requests` / `provision_responses`
+- `signup_requests` / `signup_responses`
+- `login_requests` / `login_responses`
+- `auth_check_requests` / `auth_check_responses`
+
+See below for request/response formats and usage.
+
+## Legacy REST Endpoints (Deprecated)
+- `POST /provision-requests`
+- `GET /status/:jobId`
+- `GET /provisioned-devices`
+
+---
+
 # Cypherock Provisioning Server – API & Firestore Relay Documentation
 
 This document describes the Firestore relay collections and (legacy) REST API endpoints exposed by the Cypherock provisioning backend.
