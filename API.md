@@ -1,78 +1,96 @@
-# Cypherock Provisioning Server – API Documentation
+# Cypherock Provisioning Server – API & Firestore Relay Documentation
 
-This document describes the REST API endpoints exposed by the Cypherock provisioning backend.
+This document describes the Firestore relay collections and (legacy) REST API endpoints exposed by the Cypherock provisioning backend.
 
 ---
 
-## 1. Submit Provisioning Request
+## Firestore Relay Collections (Recommended)
+
+### 1. Provisioning
+- **Requests:** `provision_requests` (Firestore collection)
+- **Responses:** `provision_responses` (Firestore collection)
+- **How it works:**
+  - Client writes a document to `provision_requests` with device info and public key.
+  - Server processes the request, signs the payload, and writes the result to `provision_responses` with the same document ID.
+
+#### Example Request Document (provision_requests):
+```json
+{
+  "publicKey": "<device public key>",
+  "deviceInfo": { /* device metadata */ }
+}
+```
+#### Example Response Document (provision_responses):
+```json
+{
+  "deviceInfo": { /* device metadata */ },
+  "publicKey": "...",
+  "timestamp": "...",
+  "signature": "...",
+  "action": "Provisioned",
+  "status": "completed",
+  "signedCertificate": "..."
+}
+```
+
+### 2. Signup & Login
+- **Signup:**
+  - Requests: `signup_requests`
+  - Responses: `signup_responses`
+- **Login:**
+  - Requests: `login_requests`
+  - Responses: `login_responses`
+- **How it works:**
+  - Client writes signup/login data to the respective request collection.
+  - Server processes and writes result (token, status, or error) to the response collection with the same document ID.
+
+#### Example Signup/Login Response:
+```json
+{
+  "token": "<JWT token>",
+  "status": 201
+}
+```
+
+### 3. Auth Check
+- **Requests:** `auth_check_requests`
+- **Responses:** `auth_check_responses`
+- **How it works:**
+  - Client writes `{ token }` to `auth_check_requests`.
+  - Server verifies the JWT and writes `{ valid, user, message }` to `auth_check_responses`.
+
+#### Example Auth Check Response:
+```json
+{
+  "valid": true,
+  "user": { "id": "...", "email": "...", "role": "..." }
+}
+```
+
+---
+
+## Legacy REST API Endpoints (Deprecated)
+
+### 1. Submit Provisioning Request
 - **Endpoint:** `POST /provision-requests`
-- **Description:** Enqueue a new device provisioning job. Returns a job ID for status tracking.
-- **Request Body:**
-  ```json
-  {
-    "publicKey": "<device public key>",
-    "deviceInfo": { /* object with device metadata */ }
-  }
-  ```
-- **Response:**
-  ```json
-  { "jobId": "<job id>" }
-  ```
-- **Error Responses:**
-  - `400 Bad Request`: Invalid or missing `publicKey` or `deviceInfo`.
-  - `500 Internal Server Error`: Unexpected server error.
+- **Description:** (Deprecated) Use Firestore relay instead.
 
----
-
-## 2. Get Provisioning Status
+### 2. Get Provisioning Status
 - **Endpoint:** `GET /status/:jobId`
-- **Description:** Get the status and result of a provisioning job by its job ID.
-- **URL Parameter:**
-  - `jobId` (string): The job identifier returned by the provisioning request.
-- **Response:**
-  ```json
-  {
-    "status": "completed|waiting|failed|...",
-    "returnvalue": { /* result object or null */ }
-  }
-  ```
-- **Error Responses:**
-  - `400 Bad Request`: Invalid or missing `jobId`.
-  - `404 Not Found`: Job not found.
-  - `500 Internal Server Error`: Unexpected server error.
+- **Description:** (Deprecated) Use Firestore relay instead.
 
----
-
-## 3. List Provisioned Devices
+### 3. List Provisioned Devices
 - **Endpoint:** `GET /provisioned-devices`
-- **Description:** Retrieve all provisioned device records stored on the server.
-- **Response:**
-  ```json
-  [
-    {
-      "deviceInfo": { /* device metadata */ },
-      "publicKey": "...",
-      "timestamp": "...",
-      "signature": "..."
-    },
-    // ... more devices
-  ]
-  ```
-- **Error Responses:**
-  - Returns an empty array if no devices are provisioned.
+- **Description:** (Deprecated) Use Firestore relay instead. (May return empty if not used.)
 
 ---
 
 ## Error Handling
-- All error responses are JSON objects with an `error` field describing the issue.
-- Example:
-  ```json
-  { "error": "Invalid or missing publicKey" }
-  ```
+- All Firestore relay responses include a `status` or `message` field describing the result or error.
 
 ---
 
 ## Notes
-- All endpoints expect and return `application/json`.
-- The server must be running and accessible at the configured host/port (default: `http://localhost:3000`).
-- For cloud integration, see the Firebase relay logic in the backend source code. 
+- All Firestore relay collections expect and return JSON-compatible data.
+- The server must be running and connected to Firebase for relay to work.
+- For cloud integration, see the Firestore relay logic in the backend source code. 

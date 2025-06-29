@@ -1,22 +1,12 @@
 import { Worker } from 'bullmq';
 import { redisOptions, queueName } from './connection';
 import { MockHSM } from '../hsm/MockHSM';
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { AuditLog } from '../models/AuditLog';
+import admin from '../firebase/admin';
 
 const hsm = new MockHSM();
-const DEVICES_FILE = path.resolve(process.cwd(), 'provisionedDevices.json');
-
-function saveProvisionedDevice(deviceRecord: any) {
-  console.log('Saving devices to:', DEVICES_FILE);
-  let devices = [];
-  if (fs.existsSync(DEVICES_FILE)) {
-    devices = JSON.parse(fs.readFileSync(DEVICES_FILE, 'utf8'));
-  }
-  devices.push(deviceRecord);
-  fs.writeFileSync(DEVICES_FILE, JSON.stringify(devices, null, 2));
-}
+const db = admin.firestore();
 
 export const startWorker = () => {
   const worker = new Worker(
@@ -42,8 +32,26 @@ export const startWorker = () => {
       const record = {
         ...payload,
         signature: signature.toString('base64'),
+        action: 'Provisioned',
+        status: 'completed',
+        signedCertificate: signature.toString('base64'),
       };
-      saveProvisionedDevice(record);
+
+      // 5. Save to AuditLog in MongoDB only, with status and signedCertificate
+      await AuditLog.create({
+        deviceId: deviceInfo?.deviceId || 'unknown',
+        action: 'Provisioned',
+        timestamp: payload.timestamp ? new Date(payload.timestamp) : new Date(),
+        operator: deviceInfo?.operator || 'unknown',
+        status: 'completed',
+        signedCertificate: signature.toString('base64'),
+      });
+
+      // 6. Also write to Firestore for dashboard
+      console.log('Writing to Firestore provisioned_devices:', record);
+      await db.collection('provisioned_devices').add(record);
+      console.log('Successfully wrote to Firestore provisioned_devices');
+
       return { ...record };
     },
     { connection: redisOptions }
