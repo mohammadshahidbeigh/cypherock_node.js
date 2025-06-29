@@ -5,7 +5,7 @@ dotenv.config();
 const connectDB = async () => {
   try {
     await mongoose.connect(
-      process.env.MONGODB_URI || 'mongodb+srv://shahid:shahid%4097.in@cypherock.eqhdurz.mongodb.net/cypherock?retryWrites=true&w=majority'
+      process.env.MONGODB_URI || 'mongodb+srv://...'
     );
     console.log('✅ MongoDB Connected');
   } catch (err) {

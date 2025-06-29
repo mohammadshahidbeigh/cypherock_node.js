@@ -28,8 +28,8 @@ const app = express();
 app.use(express.json());
 app.use(cors({
   origin: [
-    'http://localhost:5173',
-    'http://localhost:5174'
+    'http://localhost:5173', // The "Client-Side"
+    'http://localhost:5174' // The "Admin & Auditing Service"
   ],
   credentials: true
 }));
